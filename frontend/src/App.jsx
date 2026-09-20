@@ -1,122 +1,165 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+
+const API_URL = "http://localhost:5000/api";
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [search, setSearch] = useState("");
+    const [searchResults, setSearchResults] = useState([]);
+    const [trackedProducts, setTrackedProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    const searchProducts = async () => {
+        if (!search.trim()) {
+            setSearchResults([]);
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `${API_URL}/products/search?q=${encodeURIComponent(search)}`
+            );
+
+            const data = await response.json();
+
+            setSearchResults(data);
+        } catch (error) {
+            console.error("Search failed:", error);
+        }
+    };
+
+    const fetchTrackedProducts = async () => {
+        try {
+            const response = await fetch(
+                `${API_URL}/products/tracked`
+            );
+
+            const data = await response.json();
+
+            setTrackedProducts(data);
+        } catch (error) {
+            console.error(
+                "Failed to load tracked products:",
+                error
+            );
+        }
+    };
+
+    const trackProduct = async (product) => {
+        try {
+            setLoading(true);
+
+            const response = await fetch(
+                `${API_URL}/products/track`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        product_name: product.product_name,
+                        product_url: product.product_url,
+                        image_url: product.image_url
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error);
+            }
+
+            await fetchTrackedProducts();
+
+            alert("Product is now being tracked.");
+
+        } catch (error) {
+            console.error(
+                "Failed to track product:",
+                error
+            );
+
+            alert(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTrackedProducts();
+    }, []);
+
+    return (
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+            <h1>Product Price Tracker</h1>
 
-      <div className="ticks"></div>
+            <div>
+                <input
+                    type="text"
+                    placeholder="Search product name..."
+                    value={search}
+                    onChange={(event) =>
+                        setSearch(event.target.value)
+                    }
+                />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+                <button onClick={searchProducts}>
+                    Search
+                </button>
+            </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+            <h2>Search Results</h2>
+
+            {searchResults.length === 0 ? (
+                <p>No products found.</p>
+            ) : (
+                searchResults.map((product) => (
+                    <div key={product.id}>
+                        <h3>
+                            {product.product_name}
+                        </h3>
+
+                        <p>
+                            {product.product_url}
+                        </p>
+
+                        <button
+                            onClick={() =>
+                                trackProduct(product)
+                            }
+                            disabled={loading}
+                        >
+                            Track Product
+                        </button>
+                    </div>
+                ))
+            )}
+
+            <hr />
+
+            <h2>Tracked Products</h2>
+
+            {trackedProducts.length === 0 ? (
+                <p>No products are being tracked.</p>
+            ) : (
+                trackedProducts.map((product) => (
+                    <div key={product.id}>
+                        <h3>
+                            {product.product_name}
+                        </h3>
+
+                        <p>
+                            {product.product_url}
+                        </p>
+
+                        <p>
+                            Product ID: {product.id}
+                        </p>
+                    </div>
+                ))
+            )}
+        </div>
+    );
 }
 
-export default App
+export default App;
