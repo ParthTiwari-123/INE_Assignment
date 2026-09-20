@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
-const API_URL = "http://localhost:5000/api";
+// const API_URL = "http://localhost:5000/api";
+const API_URL = "https://ine-assignment-5joy.onrender.com/api";
+
 
 function App() {
     const [search, setSearch] = useState("");
